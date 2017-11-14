@@ -47,6 +47,7 @@ public class Crawler {
 		return instance;
 	}
 
+	// 此处不应人为设定
 	static int REQUEST_PER_SECOND_LIMIT = 20;
 
 	// 单次请求TIMEOUT
@@ -92,7 +93,7 @@ public class Crawler {
 	 */
 	void createDistributor(Class<? extends Task> clazz) {
 		Distributor d = new Distributor(clazz.getSimpleName() + "-queue", clazz);
-		d.setPriority(5);
+		d.setPriority(7);
 		d.start();
 		distributors.put(clazz, d);
 	}

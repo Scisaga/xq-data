@@ -105,7 +105,7 @@ public class Post implements JSONable {
 					+item.like_count+", "
 					+item.reward_count+", "
 					+item.reward_amount+", '"
-					+item.description+"', '"
+					+item.description.replaceAll("'","\\'")+"', '" //TODO 需要确认是否可以消除英文单引号无法入库的问题
 					+ DateFormatUtil.dff.print(item.insert_time.getTime())+"'), ";
 			count ++;
 		}
