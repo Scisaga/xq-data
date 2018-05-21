@@ -4,8 +4,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.tfelab.db.DBName;
-import org.tfelab.db.OrmLiteDaoManager;
+import one.rewind.db.DBName;
+import one.rewind.db.DaoManager;
 import org.tfelab.xq_data.Crawler;
 
 import java.util.Date;
@@ -31,7 +31,7 @@ public class CrawlerStat {
 
 	public boolean insert() throws Exception{
 
-		Dao<CrawlerStat, String> dao = OrmLiteDaoManager.getDao(CrawlerStat.class);
+		Dao<CrawlerStat, String> dao = DaoManager.getDao(CrawlerStat.class);
 
 		if (dao.create(this) == 1) {
 			return true;

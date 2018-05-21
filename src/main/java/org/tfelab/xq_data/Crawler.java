@@ -5,19 +5,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RBlockingQueue;
 import org.redisson.client.RedisTimeoutException;
-import org.tfelab.common.Configs;
-import org.tfelab.db.RedissonAdapter;
-import org.tfelab.json.JSON;
-import org.tfelab.io.requester.BasicRequester;
-import org.tfelab.io.requester.Requester;
-import org.tfelab.io.requester.chrome.ChromeDriverRequester;
-import org.tfelab.io.requester.Task;
-import org.tfelab.io.requester.proxy.ProxyWrapper;
-import org.tfelab.xq_data.model.Proxy;
-import org.tfelab.io.requester.proxy.IpDetector;
+import one.rewind.util.Configs;
+import one.rewind.db.RedissonAdapter;
+import one.rewind.json.JSON;
+import one.rewind.io.requester.BasicRequester;
+import one.rewind.io.requester.chrome.ChromeDriverRequester;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.proxy.Proxy;
+import org.tfelab.xq_data.model.ProxyImpl;
+import one.rewind.io.requester.proxy.IpDetector;
 import org.tfelab.xq_data.proxy.ProxyManager;
-import org.tfelab.txt.DateFormatUtil;
-import org.tfelab.util.NetworkUtil;
+import one.rewind.txt.DateFormatUtil;
+import one.rewind.util.NetworkUtil;
 
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +57,7 @@ public class Crawler {
 	static {
 
 		try {
-			REQUEST_PER_SECOND_LIMIT = Configs.getConfig(Requester.class).getInt("requestPerSecondLimit");
+			REQUEST_PER_SECOND_LIMIT = Configs.getConfig(BasicRequester.class).getInt("requestPerSecondLimit");
 		} catch (Exception e) {
 			logger.error(e);
 		}
@@ -110,7 +109,7 @@ public class Crawler {
 			createDistributor(t.getClass());
 		}
 
-		if(t.isPrior()) {
+		if(t.getPriority().equals(Task.Priority.HIGH)) {
 			try {
 				distributors.get(t.getClass()).distribute(t.toJSON());
 			} catch (Exception e) {
@@ -206,27 +205,27 @@ public class Crawler {
 		public void distribute(String json) throws Exception {
 
 			T t = JSON.fromJson(json, clazz);
-			ProxyWrapper proxy = null;
+			Proxy proxy = null;
 
 			/**
 			 * 根据AccountWrapper设定proxy
 			 */
-			if(t.getAccountWrapper() != null) {
+			if(t.getAccount() != null) {
 
-				if(t.getAccountWrapper().getProxyId() != null) {
-					proxy = Proxy.getProxyById(t.getAccountWrapper().getProxyId());
+				if(t.getAccount().getProxyId() != null) {
+					proxy = ProxyManager.getInstance().getProxyById(t.getAccount().getProxyId());
 					if(proxy != null) {
-						t.setProxyWrapper(proxy);
+						t.setProxy(proxy);
 					} else {
 						logger.error("No available proxy. Exit.");
 						System.exit(0);
 					}
 
 				}
-				else if(t.getAccountWrapper().getProxyGroup() != null) {
-					proxy = Proxy.getValidProxy(t.getAccountWrapper().getProxyGroup());
+				else if(t.getAccount().getProxyGroup() != null) {
+					proxy = ProxyManager.getInstance().getProxyByGroup(t.getAccount().getProxyGroup());
 					if(proxy != null) {
-						t.setProxyWrapper(proxy);
+						t.setProxy(proxy);
 					} else {
 						logger.error("No available proxy. Exit.");
 						System.exit(0);
@@ -289,9 +288,9 @@ public class Crawler {
 				if(t.getRequester_class() != null
 						&& t.getRequester_class().equals(ChromeDriverRequester.class.getSimpleName()))
 				{
-					ChromeDriverRequester.getInstance().fetch(t, CONNECT_TIMEOUT);
+					ChromeDriverRequester.getInstance().submit(t);
 				} else {
-					BasicRequester.getInstance().fetch(t, CONNECT_TIMEOUT);
+					BasicRequester.getInstance().submit(t, CONNECT_TIMEOUT);
 				}
 
 				StatManager.getInstance().count();
@@ -299,7 +298,7 @@ public class Crawler {
 				/**
 				 * 重试逻辑
 				 */
-				if (t.getException() != null) {
+				if (t.getExceptions().size() > 0) {
 
 					logger.error("Fetch Error: {}.", t.getUrl(), t.getException());
 

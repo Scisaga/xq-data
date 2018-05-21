@@ -3,16 +3,16 @@ package org.tfelab.xq_data.task;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import org.tfelab.io.requester.Task;
-import org.tfelab.io.requester.account.AccountWrapper;
-import org.tfelab.io.requester.account.AccountWrapperImpl;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.account.Account;
+import one.rewind.io.requester.account.AccountImpl;
 import org.tfelab.xq_data.Crawler;
 import org.tfelab.xq_data.model.Post;
 import org.tfelab.xq_data.model.TaskTrace;
 import org.tfelab.xq_data.model.User;
 import org.tfelab.xq_data.model.UserFollow;
 import org.tfelab.xq_data.proxy.ProxyManager;
-import org.tfelab.txt.DateFormatUtil;
+import one.rewind.txt.DateFormatUtil;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -32,10 +32,10 @@ public class PostExtractTask extends Task {
 	 *
 	 * @param id
 	 * @param page
-	 * @param accountWrapper
+	 * @param account
 	 * @return
 	 */
-	public static PostExtractTask generateTask(String id, int page, AccountWrapper accountWrapper) {
+	public static PostExtractTask generateTask(String id, int page, Account account) {
 
 		if(page > 10000) return null;
 
@@ -53,7 +53,7 @@ public class PostExtractTask extends Task {
 		try {
 			PostExtractTask t =  new PostExtractTask(id, page, url);
 
-			t.setAccount(accountWrapper);
+			t.setAccount(account);
 			return t;
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -155,9 +155,9 @@ public class PostExtractTask extends Task {
 					e.printStackTrace();
 				}
 
-				Task t = generateTask(id, page + 1, this.getAccountWrapper());
+				Task t = generateTask(id, page + 1, this.getAccount());
 				if(t != null) {
-					t.setPrior();
+					t.setPriority(Priority.HIGH);
 					tasks.add(t);
 				}
 			}
@@ -177,11 +177,12 @@ public class PostExtractTask extends Task {
 	}
 
 	public static void main(String[] args) throws Exception {
-		AccountWrapper accountWrapper = new AccountWrapperImpl().setProxyGroup(ProxyManager.aliyun_g);
+
+		Account account = new AccountImpl().setProxyGroup(ProxyManager.aliyun_g);
 
 		Crawler crawler = Crawler.getInstance();
 
-		Task t = PostExtractTask.generateTask("7566572378", 1, accountWrapper);
+		Task t = PostExtractTask.generateTask("7566572378", 1, account);
 		crawler.addTask(t);
 	}
 }

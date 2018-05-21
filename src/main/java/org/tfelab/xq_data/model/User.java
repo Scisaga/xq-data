@@ -4,10 +4,10 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import org.tfelab.db.DBName;
-import org.tfelab.db.OrmLiteDaoManager;
-import org.tfelab.json.JSON;
-import org.tfelab.json.JSONable;
+import one.rewind.db.DBName;
+import one.rewind.db.DaoManager;
+import one.rewind.json.JSON;
+import one.rewind.json.JSONable;
 
 import java.util.Date;
 import java.util.List;
@@ -66,7 +66,7 @@ public class User implements JSONable {
 	 */
 	public boolean insert() throws Exception{
 
-		Dao<User, String> dao = OrmLiteDaoManager.getDao(User.class);
+		Dao<User, String> dao = DaoManager.getDao(User.class);
 
 		if (dao.create(this) == 1) {
 			return true;
@@ -82,7 +82,7 @@ public class User implements JSONable {
 	 */
 	public boolean update() throws Exception{
 
-		Dao<User, String> dao = OrmLiteDaoManager.getDao(User.class);
+		Dao<User, String> dao = DaoManager.getDao(User.class);
 
 		if (dao.update(this) == 1) {
 			return true;
@@ -92,7 +92,7 @@ public class User implements JSONable {
 	}
 
 	public static User getUserById(String id) throws Exception {
-		Dao<User, String> dao = OrmLiteDaoManager.getDao(User.class);
+		Dao<User, String> dao = DaoManager.getDao(User.class);
 		return dao.queryBuilder().where().eq("id", id).queryForFirst();
 	}
 

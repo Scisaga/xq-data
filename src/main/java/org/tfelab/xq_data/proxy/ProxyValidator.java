@@ -17,11 +17,11 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.tfelab.io.requester.BasicRequester.ConnectionBuilder;
-import org.tfelab.io.requester.proxy.IpDetector;
-import org.tfelab.io.requester.proxy.ProxyWrapper;
-import org.tfelab.io.requester.proxy.ProxyWrapperImpl;
+import one.rewind.io.requester.BasicRequester.ConnectionBuilder;
+import one.rewind.io.requester.proxy.IpDetector;
+import one.rewind.io.requester.proxy.Proxy;
 import org.tfelab.xq_data.Crawler;
+import org.tfelab.xq_data.model.ProxyImpl;
 
 public class ProxyValidator {
 	
@@ -73,7 +73,7 @@ public class ProxyValidator {
 	 */
 	public class Task implements Runnable {
 		
-		ProxyWrapper pw;
+		Proxy proxy;
 		private Type type;
 		private String proxyIp;
 		private String host;
@@ -86,13 +86,13 @@ public class ProxyValidator {
 		/**
 		 * 
 		 * @param type
-		 * @param pw
+		 * @param proxy
 		 * @param url
 		 * @param host
 		 */
-		public Task(Type type, ProxyWrapper pw, String url, String host) {
+		public Task(Type type, Proxy proxy, String url, String host) {
 			this.type = type;
-			this.pw = pw;
+			this.proxy = proxy;
 			this.host = host;
 			this.url = url;
 		}
@@ -110,11 +110,11 @@ public class ProxyValidator {
 			 */
 			try {
 				
-				logger.info("Test Alive --> {}", pw.getInfo());
+				logger.info("Test Alive --> {}", proxy.getInfo());
 				
 				if(url == null) url = BAIDU;
 				
-				conn = new ConnectionBuilder(url, pw).build();
+				conn = new ConnectionBuilder(url, proxy).build();
 				code = conn.getResponseCode();
 				
 				if(code < 400) {
@@ -160,9 +160,9 @@ public class ProxyValidator {
 				 * 测试代理的匿名性
 				 */
 				try{
-					logger.info("Test Anonymous --> {}", pw.getInfo());
+					logger.info("Test Anonymous --> {}", proxy.getInfo());
 					
-					proxyIp = IpDetector.getIp(pw);
+					proxyIp = IpDetector.getIp(proxy);
 					if (proxyIp != null && host != null && !host.equals(proxyIp)) {
 						status.add(Status.Anonymous);
 					}
@@ -175,9 +175,9 @@ public class ProxyValidator {
 				 * 测试代理是否支持HTTPS请求
 				 */
 				try{
-					logger.info("Test Https --> {}", pw.getInfo());
+					logger.info("Test Https --> {}", proxy.getInfo());
 					
-					conn = new ConnectionBuilder(BAIDUS, pw).build();
+					conn = new ConnectionBuilder(BAIDUS, proxy).build();
 					
 					code = ((HttpsURLConnection) conn).getResponseCode();
 					
@@ -193,9 +193,9 @@ public class ProxyValidator {
 				 * 测试代理是否可以翻墙
 				 */
 				try{
-					logger.info("Test GL --> {}", pw.getInfo());
+					logger.info("Test GL --> {}", proxy.getInfo());
 					
-					conn = new ConnectionBuilder(GOOGLE, pw).build();
+					conn = new ConnectionBuilder(GOOGLE, proxy).build();
 					
 					code = conn.getResponseCode();
 					if(code < 400 && checkContent(conn, "window.google")) {
@@ -273,14 +273,14 @@ public class ProxyValidator {
 	
 	/**
 	 * 
-	 * @param pw
+	 * @param proxy
 	 * @param type
 	 * @param url
 	 * @return
 	 */
-	public Task validate(ProxyWrapper pw, Type type, String url) {
+	public Task validate(Proxy proxy, Type type, String url) {
 		
-		Task task = new Task(type, pw, url, Crawler.LOCAL_IP);
+		Task task = new Task(type, proxy, url, Crawler.LOCAL_IP);
 		
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
 		final Future<?> future = executor.submit(task);
@@ -304,16 +304,16 @@ public class ProxyValidator {
 	
 	/**
 	 * 
-	 * @param pw
+	 * @param proxy
 	 * @param url
 	 * @return
 	 */
-	public boolean isAlive(ProxyWrapper pw, String url) {
+	public boolean isAlive(Proxy proxy, String url) {
 		
-		Task task = this.validate(pw, Type.TestAlive, url);
+		Task task = this.validate(proxy, Type.TestAlive, url);
 		
 		if(task.status.contains(Status.OK)) {
-			logger.info("Proxy:{} Alive", pw.getInfo());
+			logger.info("Proxy:{} Alive", proxy.getInfo());
 			return true;
 		} else {
 			return false;
@@ -321,8 +321,8 @@ public class ProxyValidator {
 	}
 	
 	public static void main(String[] args) {
-		ProxyWrapper pw = new ProxyWrapperImpl("10.0.0.18", 60103, "tfelab", "TfeLAB2@15");
-		Task task = ProxyValidator.getInstance().validate(pw, Type.TestAlive, null);
+		Proxy proxy = new ProxyImpl("", "10.0.0.18", 60103, "tfelab", "TfeLAB2@15", "BJ", 0);
+		Task task = ProxyValidator.getInstance().validate(proxy, Type.TestAlive, null);
 		System.err.println(task.status);
 		System.err.println(task.duration);
 		System.err.println(task.speed);

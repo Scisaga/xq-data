@@ -44,7 +44,7 @@ uploadArchives {
 }
 
 dependencies {
-	compile 'org.tfelab:core:1.0-SNAPSHOT'
+	compile 'one.rewind:common:1.0.60-SNAPSHOT'
 }
 
 task copyFiles(group: 'tetra') << {

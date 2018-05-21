@@ -6,10 +6,10 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.tfelab.db.DBName;
-import org.tfelab.db.OrmLiteDaoManager;
-import org.tfelab.json.JSON;
-import org.tfelab.json.JSONable;
+import one.rewind.db.DBName;
+import one.rewind.db.DaoManager;
+import one.rewind.json.JSON;
+import one.rewind.json.JSONable;
 
 import java.util.Date;
 
@@ -49,7 +49,7 @@ public class TaskTrace implements JSONable{
 	 */
 	public boolean insert() throws Exception{
 
-		Dao<TaskTrace, String> dao = OrmLiteDaoManager.getDao(TaskTrace.class);
+		Dao<TaskTrace, String> dao = DaoManager.getDao(TaskTrace.class);
 
 		if (dao.create(this) == 1) {
 			return true;
@@ -67,7 +67,7 @@ public class TaskTrace implements JSONable{
 	 * @throws Exception
 	 */
 	public static TaskTrace getTaskTrace(String code, Class clazz, String page) throws Exception {
-		Dao<TaskTrace, String> dao = OrmLiteDaoManager.getDao(TaskTrace.class);
+		Dao<TaskTrace, String> dao = DaoManager.getDao(TaskTrace.class);
 		return dao.queryBuilder().where().eq("code", code)
 				.and().eq("type", clazz.getSimpleName())
 				.and().eq("page", page).queryForFirst();

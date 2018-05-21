@@ -6,12 +6,12 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.tfelab.db.DBName;
-import org.tfelab.db.OrmLiteDaoManager;
-import org.tfelab.db.PooledDataSource;
-import org.tfelab.json.JSON;
-import org.tfelab.json.JSONable;
-import org.tfelab.txt.DateFormatUtil;
+import one.rewind.db.DBName;
+import one.rewind.db.DaoManager;
+import one.rewind.db.PooledDataSource;
+import one.rewind.json.JSON;
+import one.rewind.json.JSONable;
+import one.rewind.txt.DateFormatUtil;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -44,7 +44,7 @@ public class UserFollow implements JSONable {
 	 */
 	public boolean insert() throws Exception{
 
-		Dao<UserFollow, String> dao = OrmLiteDaoManager.getDao(UserFollow.class);
+		Dao<UserFollow, String> dao = DaoManager.getDao(UserFollow.class);
 
 		if (dao.create(this) == 1) {
 			return true;
