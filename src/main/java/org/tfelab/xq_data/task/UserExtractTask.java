@@ -2,10 +2,10 @@ package org.tfelab.xq_data.task;
 
 import com.google.common.collect.ImmutableList;
 import org.redisson.misc.Hash;
-import org.tfelab.io.requester.Task;
-import org.tfelab.io.requester.account.AccountWrapper;
-import org.tfelab.io.requester.account.AccountWrapperImpl;
-import org.tfelab.txt.DateFormatUtil;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.account.Account;
+import one.rewind.io.requester.account.AccountImpl;
+import one.rewind.txt.DateFormatUtil;
 import org.tfelab.xq_data.Crawler;
 import org.tfelab.xq_data.model.User;
 import org.tfelab.xq_data.proxy.ProxyManager;
@@ -36,13 +36,13 @@ public class UserExtractTask extends Task {
 		return headers;
 	}
 
-	public static UserExtractTask generateTask(String id, int seed, AccountWrapper aw) {
+	public static UserExtractTask generateTask(String id, int seed, Account account) {
 
 		String url = "https://xueqiu.com/u/" + id;
 
 		try {
 			UserExtractTask t = new UserExtractTask(id, seed, url);
-			t.setAccount(aw);
+			t.setAccount(account);
 			return t;
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -127,22 +127,22 @@ public class UserExtractTask extends Task {
 
 		List<Task> tasks = new LinkedList<>();
 
-		Task t = UserColumnExtractTask.generateTask(user.id, this.getAccountWrapper());
+		Task t = UserColumnExtractTask.generateTask(user.id, this.getAccount());
 		if(t != null) {
-			t.setPrior();
+			t.setPriority(Priority.HIGH);
 			tasks.add(t);
 		}
 
-		Task t_ = PostExtractTask.generateTask(user.id, 1, this.getAccountWrapper());
+		Task t_ = PostExtractTask.generateTask(user.id, 1, this.getAccount());
 		if(t_ != null) {
-			t_.setPrior();
+			t_.setPriority(Priority.HIGH);
 			tasks.add(t_);
 		}
 
 
 		// 如果是种子用户
 		if(getParamInt("seed") == 1) {
-			return ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccountWrapper()));
+			return ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccount()));
 		}
 
 		return tasks;
@@ -151,7 +151,8 @@ public class UserExtractTask extends Task {
 
 	public static void main(String[] args) throws Exception {
 
-		AccountWrapper accountWrapper = new AccountWrapperImpl().setProxyGroup(ProxyManager.aliyun_g);
+		Account accountWrapper = new AccountImpl(null, null, null)
+				.setProxyGroup(ProxyManager.aliyun_g);
 
 		Crawler crawler = Crawler.getInstance();
 

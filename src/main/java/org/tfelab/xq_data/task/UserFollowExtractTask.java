@@ -1,15 +1,15 @@
 package org.tfelab.xq_data.task;
 
 import com.google.common.collect.ImmutableList;
-import org.tfelab.io.requester.Task;
-import org.tfelab.io.requester.account.AccountWrapper;
-import org.tfelab.io.requester.account.AccountWrapperImpl;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.account.Account;
+import one.rewind.io.requester.account.AccountImpl;
 import org.tfelab.xq_data.Crawler;
 import org.tfelab.xq_data.model.TaskTrace;
 import org.tfelab.xq_data.model.User;
 import org.tfelab.xq_data.model.UserFollow;
 import org.tfelab.xq_data.proxy.ProxyManager;
-import org.tfelab.txt.DateFormatUtil;
+import one.rewind.txt.DateFormatUtil;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -32,7 +32,7 @@ public class UserFollowExtractTask extends Task {
 	 * @param accountWrapper
 	 * @return
 	 */
-	public static UserFollowExtractTask generateTask(String id, int page, AccountWrapper accountWrapper) {
+	public static UserFollowExtractTask generateTask(String id, int page, Account account) {
 
 		if(page > 10000) return null;
 
@@ -49,7 +49,7 @@ public class UserFollowExtractTask extends Task {
 		String url = "https://xueqiu.com/friendships/groups/members.json?uid=" + id + "&page=" + page + "&gid=0";
 		try {
 			UserFollowExtractTask t =  new UserFollowExtractTask(id, page, url);
-			t.setAccount(accountWrapper);
+			t.setAccount(account);
 			return t;
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
@@ -104,7 +104,7 @@ public class UserFollowExtractTask extends Task {
 				rs.add(uf);
 
 				if(User.getUserById(uf.follow_id) == null) {
-					tasks.add(UserExtractTask.generateTask(uf.follow_id, 0, this.getAccountWrapper()));
+					tasks.add(UserExtractTask.generateTask(uf.follow_id, 0, this.getAccount()));
 				}
 
 			}
@@ -117,9 +117,9 @@ public class UserFollowExtractTask extends Task {
 					e.printStackTrace();
 				}
 
-				Task t = generateTask(id, page + 1, this.getAccountWrapper());
+				Task t = generateTask(id, page + 1, this.getAccount());
 				if(t != null) {
-					t.setPrior();
+					t.setPriority(Priority.HIGH);
 					tasks.add(t);
 				}
 			}
@@ -129,6 +129,7 @@ public class UserFollowExtractTask extends Task {
 		}
 
 		TaskTrace tt = new TaskTrace(id, UserFollowExtractTask.class, String.valueOf(page));
+
 		try {
 			tt.insert();
 		} catch (Exception e) {
@@ -136,14 +137,5 @@ public class UserFollowExtractTask extends Task {
 		}
 
 		return tasks;
-	}
-
-	public static void main(String[] args) throws Exception {
-
-		AccountWrapper accountWrapper = new AccountWrapperImpl().setProxyGroup(ProxyManager.aliyun_g);
-
-		Crawler crawler = Crawler.getInstance();
-
-
 	}
 }

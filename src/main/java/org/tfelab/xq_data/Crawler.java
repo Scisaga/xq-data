@@ -300,11 +300,12 @@ public class Crawler {
 				 */
 				if (t.getExceptions().size() > 0) {
 
-					logger.error("Fetch Error: {}.", t.getUrl(), t.getException());
+					for(Throwable e : t.getExceptions()) {
+						logger.error("Fetch Error: {}.", t.getUrl(), e);
+					}
 
 					if(t.getRetryCount() < RETRY_LIMIT) {
 						t.addRetryCount();
-						t.addExceptions(t.getException().getMessage());
 						addTask(t);
 					} else {
 						try {
@@ -321,10 +322,11 @@ public class Crawler {
 					try {
 						addTask(t.postProc());
 					} catch (Exception e) {
+
 						logger.error("Error in task post process. ", e);
 
 						try {
-							t.addExceptions(e.getMessage());
+							t.addExceptions(e);
 							t.insert();
 						} catch (Exception ex) {
 							ex.printStackTrace();

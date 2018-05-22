@@ -52,7 +52,6 @@ public class PostExtractTask extends Task {
 		String url = "https://xueqiu.com/v4/statuses/user_timeline.json?page=" + page + "&user_id=" + id;
 		try {
 			PostExtractTask t =  new PostExtractTask(id, page, url);
-
 			t.setAccount(account);
 			return t;
 		} catch (MalformedURLException e) {
@@ -75,110 +74,108 @@ public class PostExtractTask extends Task {
 	private PostExtractTask(String id, int page, String url) throws MalformedURLException, URISyntaxException {
 
 		super(url, UserExtractTask.genHeaders(), null,null, null);
-		this.setParam("id", id);
-		this.setParam("page", page);
-	}
+		/*
+		 * 解析并保存数据
+		 * 同时生成翻页任务
+		 */
+		this.addDoneCallback(() -> {
 
-	/**
-	 * 自定义后处理方法
-	 * 解析并保存数据
-	 * 同时生成翻页任务
-	 */
-	public List<Task> postProc() {
+			List<Task> tasks = new LinkedList<>();
 
-		String id = getParamString("id");
-		int page = getParamInt("page");
+			try {
 
-		List<Task> tasks = new LinkedList<>();
+				String src = new String(getResponse().getSrc(), "UTF-8");
 
-		try {
+				List<Post> posts = new LinkedList<>();
 
-			String src = new String(getResponse().getSrc(), "UTF-8");
+				ObjectMapper mapper = new ObjectMapper();
+				JsonNode json = null;
+				json = mapper.readTree(src);
 
-			List<Post> posts = new LinkedList<>();
+				for(JsonNode subNode : json.get("statuses")) {
 
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode json = null;
-			json = mapper.readTree(src);
+					Post post = new Post();
+					post.id = subNode.get("id").asText();
+					post.user_id = subNode.get("user_id").asText();
+					post.title = subNode.get("title").asText();
+					post.retweeted_id = subNode.get("retweet_status_id").asText();
+					post.create_time = DateFormatUtil.parseTime(subNode.get("created_at").asText());
+					post.retweet_count = subNode.get("retweet_count").asInt();
+					post.reply_count = subNode.get("reply_count").asInt();
+					post.fav_count = subNode.get("reply_count").asInt();
+					post.like_count = subNode.get("like_count").asInt();
+					post.reward_count = subNode.get("reward_count").asInt();
+					post.reward_amount = subNode.get("reward_amount").asInt();
+					post.description = subNode.get("description").asText();
 
-			for(JsonNode subNode : json.get("statuses")) {
-
-				Post post = new Post();
-				post.id = subNode.get("id").asText();
-				post.user_id = subNode.get("user_id").asText();
-				post.title = subNode.get("title").asText();
-				post.retweeted_id = subNode.get("retweet_status_id").asText();
-				post.create_time = DateFormatUtil.parseTime(subNode.get("created_at").asText());
-				post.retweet_count = subNode.get("retweet_count").asInt();
-				post.reply_count = subNode.get("reply_count").asInt();
-				post.fav_count = subNode.get("reply_count").asInt();
-				post.like_count = subNode.get("like_count").asInt();
-				post.reward_count = subNode.get("reward_count").asInt();
-				post.reward_amount = subNode.get("reward_amount").asInt();
-				post.description = subNode.get("description").asText();
-
-				posts.add(post);
+					posts.add(post);
 
 /*				System.err.println("============================================");
 				System.err.println(post.id);
 				System.err.println(subNode.get("retweeted_status").toString());
 				System.err.println(subNode.get("retweeted_status") == null);*/
 
-				if(!subNode.get("retweeted_status").toString().equals("null")) {
+					if(!subNode.get("retweeted_status").toString().equals("null")) {
 
-					subNode = subNode.get("retweeted_status");
+						subNode = subNode.get("retweeted_status");
 
-					Post post_ = new Post();
-					post_.id = subNode.get("id").asText();
-					post_.user_id = subNode.get("user_id").asText();
-					post_.title = subNode.get("title").asText();
-					post_.retweeted_id = subNode.get("retweet_status_id").asText();
-					post_.create_time = DateFormatUtil.parseTime(subNode.get("created_at").asText());
-					post_.retweet_count = subNode.get("retweet_count").asInt();
-					post_.reply_count = subNode.get("reply_count").asInt();
-					post_.fav_count = subNode.get("reply_count").asInt();
-					post_.like_count = subNode.get("like_count").asInt();
-					post_.reward_count = subNode.get("reward_count").asInt();
-					post_.reward_amount = subNode.get("reward_amount").asInt();
-					post_.description = subNode.get("description").asText();
+						Post post_ = new Post();
+						post_.id = subNode.get("id").asText();
+						post_.user_id = subNode.get("user_id").asText();
+						post_.title = subNode.get("title").asText();
+						post_.retweeted_id = subNode.get("retweet_status_id").asText();
+						post_.create_time = DateFormatUtil.parseTime(subNode.get("created_at").asText());
+						post_.retweet_count = subNode.get("retweet_count").asInt();
+						post_.reply_count = subNode.get("reply_count").asInt();
+						post_.fav_count = subNode.get("reply_count").asInt();
+						post_.like_count = subNode.get("like_count").asInt();
+						post_.reward_count = subNode.get("reward_count").asInt();
+						post_.reward_amount = subNode.get("reward_amount").asInt();
+						post_.description = subNode.get("description").asText();
 
-					posts.add(post_);
+						posts.add(post_);
+					}
+
 				}
 
+				if(posts.size() > 0) {
+
+					try {
+						Post.insertBatch(posts);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+
+					Task t = generateTask(id, page + 1, this.getAccount());
+
+					if(t != null) {
+						t.setPriority(Priority.HIGH);
+						tasks.add(t);
+					}
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
-			if(posts.size() > 0) {
-
-				try {
-					Post.insertBatch(posts);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-				Task t = generateTask(id, page + 1, this.getAccount());
-				if(t != null) {
-					t.setPriority(Priority.HIGH);
-					tasks.add(t);
-				}
+			TaskTrace tt = new TaskTrace(id, PostExtractTask.class, String.valueOf(page));
+			try {
+				tt.insert();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		TaskTrace tt = new TaskTrace(id, PostExtractTask.class, String.valueOf(page));
-		try {
-			tt.insert();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return tasks;
+		});
 	}
 
+	/**
+	 *
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
 
-		Account account = new AccountImpl().setProxyGroup(ProxyManager.aliyun_g);
+		Account account = new AccountImpl(null, null, null).setProxyGroup(ProxyManager.aliyun_g);
 
 		Crawler crawler = Crawler.getInstance();
 

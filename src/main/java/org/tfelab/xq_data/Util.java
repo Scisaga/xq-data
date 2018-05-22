@@ -2,10 +2,10 @@ package org.tfelab.xq_data;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.tfelab.io.requester.Task;
-import org.tfelab.io.requester.account.AccountWrapper;
-import org.tfelab.io.requester.account.AccountWrapperImpl;
-import org.tfelab.util.FileUtil;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.account.Account;
+import one.rewind.io.requester.account.AccountImpl;
+import one.rewind.util.FileUtil;
 import org.tfelab.xq_data.proxy.ProxyManager;
 import org.tfelab.xq_data.task.UserExtractTask;
 
@@ -18,15 +18,18 @@ public class Util {
 
 	public static List<Task> initSeedUserTask() {
 
-		AccountWrapper accountWrapper = new AccountWrapperImpl().setProxyGroup(ProxyManager.abuyun_g);
+		Account account = new AccountImpl(null, null, null).
+				setProxyGroup(ProxyManager.abuyun_g);
 
 		String[] ids = FileUtil.readFileByLines("id_list").split("\n");
 		System.err.println(ids.length);
+
 		List<Task> tasks = new LinkedList<>();
 		for(String id:ids) {
-			Task t = UserExtractTask.generateTask(id, 1, accountWrapper);
+			Task t = UserExtractTask.generateTask(id, 1, account);
 			tasks.add(t);
 		}
+
 		return tasks;
 	}
 
