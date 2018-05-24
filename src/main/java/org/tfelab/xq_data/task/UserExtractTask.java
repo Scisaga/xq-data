@@ -19,6 +19,10 @@ import java.util.regex.Pattern;
 
 public class UserExtractTask extends Task {
 
+	/**
+	 *
+	 * @return
+	 */
 	public static HashMap<String, String> genHeaders() {
 
 		HashMap<String, String> headers = new HashMap<String, String>();
@@ -36,6 +40,13 @@ public class UserExtractTask extends Task {
 		return headers;
 	}
 
+	/**
+	 *
+	 * @param id
+	 * @param seed
+	 * @param account
+	 * @return
+	 */
 	public static UserExtractTask generateTask(String id, int seed, Account account) {
 
 		String url = "https://xueqiu.com/u/" + id;
@@ -53,100 +64,107 @@ public class UserExtractTask extends Task {
 		return null;
 	}
 
+	/**
+	 *
+	 * @param id
+	 * @param seed
+	 * @param url
+	 * @throws MalformedURLException
+	 * @throws URISyntaxException
+	 */
 	private UserExtractTask(String id, int seed, String url) throws MalformedURLException, URISyntaxException {
+
 		super(url);
 		this.setParam("id", id);
 		this.setParam("seed", seed);
-	}
 
-	public List<Task> postProc() {
+		this.addDoneCallback(() -> {
 
-		String src = getResponse().getText();
+			String src = getResponse().getText();
 
-		try {
-			if(User.getUserById(this.getParamString("id")) != null) {
-				return null;
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		User user = new User();
-		user.id = this.getParamString("id");
-
-		Map<String, String> patterns = new HashMap<>();
-		patterns.put("name", "(?s)<h2>(?<T>.+?)</h2>");
-		patterns.put("description", "</div><p>(?<T>.+?)</p><profiles-pannel>");
-		patterns.put("gender", "class=\"profiles__icon--(?<T>.{1})");
-		patterns.put("follow_count", "<strong>(?<T>\\d+?)</strong> 关注");
-		patterns.put("fans_count","<strong>(?<T>\\d+?)</strong> 粉丝");
-		patterns.put("shiming", "(?<T>实名认证)");
-		patterns.put("location", "<li> <i class=\"iconfont\">&#xe63f;</i>(?<T>.+?)</li>");
-		patterns.put("post_count", "帖子<span>(?<T>\\d+?)</span>");
-		patterns.put("stock_count", "股票<span>(?<T>\\d+?)</span>");
-
-		for(String key : patterns.keySet()) {
-
-			Pattern p = Pattern.compile(patterns.get(key));
-			Matcher m = p.matcher(src);
-
-			if(m.find()) {
-
-				try {
-					Field f = user.getClass().getDeclaredField(key);
-
-					if(f.getType().equals(Date.class)) {
-						f.set(user, DateFormatUtil.parseTime(m.group("T")));
-					}
-					else if (f.getType().equals(int.class)) {
-						f.set(user, Integer.valueOf(m.group("T")));
-					}
-					else if (f.getType().equals(float.class)) {
-						f.set(user, Float.valueOf(m.group("T")));
-					}
-					else if (f.getType().equals(double.class)) {
-						f.set(user, Double.valueOf(m.group("T")));
-					}
-					else {
-						f.set(user, m.group("T"));
-					}
-
-				} catch (Exception e) {
-					e.printStackTrace();
-					return null;
+			try {
+				if(User.getUserById(this.getParamString("id")) != null) {
+					return;
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
-		}
+			User user = new User();
+			user.id = this.getParamString("id");
 
-		try {
-			user.insert();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			Map<String, String> patterns = new HashMap<>();
+			patterns.put("name", "(?s)<h2>(?<T>.+?)</h2>");
+			patterns.put("description", "</div><p>(?<T>.+?)</p><profiles-pannel>");
+			patterns.put("gender", "class=\"profiles__icon--(?<T>.{1})");
+			patterns.put("follow_count", "<strong>(?<T>\\d+?)</strong> 关注");
+			patterns.put("fans_count","<strong>(?<T>\\d+?)</strong> 粉丝");
+			patterns.put("shiming", "(?<T>实名认证)");
+			patterns.put("location", "<li> <i class=\"iconfont\">&#xe63f;</i>(?<T>.+?)</li>");
+			patterns.put("post_count", "帖子<span>(?<T>\\d+?)</span>");
+			patterns.put("stock_count", "股票<span>(?<T>\\d+?)</span>");
 
-		List<Task> tasks = new LinkedList<>();
+			for(String key : patterns.keySet()) {
 
-		Task t = UserColumnExtractTask.generateTask(user.id, this.getAccount());
-		if(t != null) {
-			t.setPriority(Priority.HIGH);
-			tasks.add(t);
-		}
+				Pattern p = Pattern.compile(patterns.get(key));
+				Matcher m = p.matcher(src);
 
-		Task t_ = PostExtractTask.generateTask(user.id, 1, this.getAccount());
-		if(t_ != null) {
-			t_.setPriority(Priority.HIGH);
-			tasks.add(t_);
-		}
+				if(m.find()) {
 
+					try {
+						Field f = user.getClass().getDeclaredField(key);
 
-		// 如果是种子用户
-		if(getParamInt("seed") == 1) {
-			return ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccount()));
-		}
+						if(f.getType().equals(Date.class)) {
+							f.set(user, DateFormatUtil.parseTime(m.group("T")));
+						}
+						else if (f.getType().equals(int.class)) {
+							f.set(user, Integer.valueOf(m.group("T")));
+						}
+						else if (f.getType().equals(float.class)) {
+							f.set(user, Float.valueOf(m.group("T")));
+						}
+						else if (f.getType().equals(double.class)) {
+							f.set(user, Double.valueOf(m.group("T")));
+						}
+						else {
+							f.set(user, m.group("T"));
+						}
 
-		return tasks;
+					} catch (Exception e) {
+						e.printStackTrace();
+						return;
+					}
+				}
 
+			}
+
+			try {
+				user.insert();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			List<Task> tasks = new LinkedList<>();
+
+			Task t = UserColumnExtractTask.generateTask(user.id, this.getAccount());
+			if(t != null) {
+				t.setPriority(Priority.HIGH);
+				tasks.add(t);
+			}
+
+			Task t_ = PostExtractTask.generateTask(user.id, 1, this.getAccount());
+			if(t_ != null) {
+				t_.setPriority(Priority.HIGH);
+				tasks.add(t_);
+			}
+
+			// 如果是种子用户
+			if(getParamInt("seed") == 1) {
+				tasks = ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccount()));
+			}
+
+			Crawler.getInstance().addTask(tasks);
+		});
 	}
 
 	public static void main(String[] args) throws Exception {

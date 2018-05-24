@@ -316,22 +316,6 @@ public class Crawler {
 					}
 
 					return;
-
-				} else {
-
-					try {
-						addTask(t.postProc());
-					} catch (Exception e) {
-
-						logger.error("Error in task post process. ", e);
-
-						try {
-							t.addExceptions(e);
-							t.insert();
-						} catch (Exception ex) {
-							ex.printStackTrace();
-						}
-					}
 				}
 
 				logger.info("{} duration: {}", t.getUrl(), t.getDuration());

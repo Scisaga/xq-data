@@ -17,6 +17,12 @@ import java.util.regex.Pattern;
 
 public class UserColumnExtractTask extends Task {
 
+	/**
+	 *
+	 * @param id
+	 * @param account
+	 * @return
+	 */
 	public static UserColumnExtractTask generateTask(String id, Account account) {
 
 		String url = "https://xueqiu.com/statuses/original/show.json?user_id=" + id;
@@ -25,16 +31,22 @@ public class UserColumnExtractTask extends Task {
 			UserColumnExtractTask t = new UserColumnExtractTask(id, url);
 			t.setAccount(account);
 			return t;
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (URISyntaxException e) {
+		} catch (MalformedURLException | URISyntaxException e) {
 			e.printStackTrace();
 		}
 
 		return null;
 	}
 
+	/**
+	 *
+	 * @param id
+	 * @param url
+	 * @throws MalformedURLException
+	 * @throws URISyntaxException
+	 */
 	private UserColumnExtractTask(String id, String url) throws MalformedURLException, URISyntaxException {
+
 		super(url);
 		this.setParam("id", id);
 

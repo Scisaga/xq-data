@@ -158,6 +158,8 @@ public class PostExtractTask extends Task {
 				e.printStackTrace();
 			}
 
+			Crawler.getInstance().addTask(tasks);
+
 			TaskTrace tt = new TaskTrace(id, PostExtractTask.class, String.valueOf(page));
 			try {
 				tt.insert();

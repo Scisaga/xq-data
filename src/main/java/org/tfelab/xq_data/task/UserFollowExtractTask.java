@@ -29,7 +29,7 @@ public class UserFollowExtractTask extends Task {
 	 *
 	 * @param id
 	 * @param page
-	 * @param accountWrapper
+	 * @param account
 	 * @return
 	 */
 	public static UserFollowExtractTask generateTask(String id, int page, Account account) {
@@ -74,68 +74,60 @@ public class UserFollowExtractTask extends Task {
 
 		this.setParam("id", id);
 		this.setParam("page", page);
-	}
 
-	/**
-	 * 自定义后处理方法
-	 * 解析并保存数据
-	 * 同时生成翻页任务
-	 */
-	public List<Task> postProc() {
+		this.addDoneCallback(() -> {
 
-		String id = getParamString("id");
-		int page = getParamInt("page");
+			List<Task> tasks = new LinkedList<>();
 
-		List<Task> tasks = new LinkedList<>();
+			List<UserFollow> rs = new LinkedList<>();
 
-		List<UserFollow> rs = new LinkedList<>();
+			try {
 
-		try {
+				String src = getResponse().getText();
 
-			String src = getResponse().getText();
+				Pattern recordPattern = Pattern.compile("\"id\":(?<id>\\d+),");
+				Matcher recordMatcher = recordPattern.matcher(src);
+				while (recordMatcher.find()) {
 
-			Pattern recordPattern = Pattern.compile("\"id\":(?<id>\\d+),");
-			Matcher recordMatcher = recordPattern.matcher(src);
-			while (recordMatcher.find()) {
+					UserFollow uf = new UserFollow();
+					uf.user_id = id;
+					uf.follow_id = recordMatcher.group("id");
+					rs.add(uf);
 
-				UserFollow uf = new UserFollow();
-				uf.user_id = id;
-				uf.follow_id = recordMatcher.group("id");
-				rs.add(uf);
+					if(User.getUserById(uf.follow_id) == null) {
+						tasks.add(UserExtractTask.generateTask(uf.follow_id, 0, this.getAccount()));
+					}
 
-				if(User.getUserById(uf.follow_id) == null) {
-					tasks.add(UserExtractTask.generateTask(uf.follow_id, 0, this.getAccount()));
 				}
 
+				if(rs.size() > 0) {
+
+					try {
+						UserFollow.insertBatch(rs);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+
+					Task t = generateTask(id, page + 1, this.getAccount());
+					if(t != null) {
+						t.setPriority(Priority.HIGH);
+						tasks.add(t);
+					}
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
-			if(rs.size() > 0) {
+			TaskTrace tt = new TaskTrace(id, UserFollowExtractTask.class, String.valueOf(page));
 
-				try {
-					UserFollow.insertBatch(rs);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-				Task t = generateTask(id, page + 1, this.getAccount());
-				if(t != null) {
-					t.setPriority(Priority.HIGH);
-					tasks.add(t);
-				}
+			try {
+				tt.insert();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		TaskTrace tt = new TaskTrace(id, UserFollowExtractTask.class, String.valueOf(page));
-
-		try {
-			tt.insert();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return tasks;
+			Crawler.getInstance().addTask(tasks);
+		});
 	}
 }
