@@ -293,6 +293,11 @@ public class Crawler {
 					BasicRequester.getInstance().submit(t, CONNECT_TIMEOUT);
 				}
 
+				for(Runnable runnable : t.doneCallBacks) {
+					System.err.println("AAA");
+					runnable.run();
+				}
+
 				StatManager.getInstance().count();
 
 				/**

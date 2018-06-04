@@ -19,7 +19,7 @@ import java.util.Date;
 import java.util.List;
 
 @DatabaseTable(tableName = "posts")
-@DBName(value = "xq_data")
+@DBName(value = "xueqiu")
 public class Post implements JSONable {
 
 	private static final Logger logger = LogManager.getLogger(Post.class.getName());

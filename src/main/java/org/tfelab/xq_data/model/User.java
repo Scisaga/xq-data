@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 @DatabaseTable(tableName = "users")
-@DBName(value = "xq_data")
+@DBName(value = "xueqiu")
 public class User implements JSONable {
 
 	@DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false, id = true)

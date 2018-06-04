@@ -11,7 +11,7 @@ import org.tfelab.xq_data.Crawler;
 import java.util.Date;
 
 @DatabaseTable(tableName = "crawler_stats")
-@DBName(value = "crawler")
+@DBName(value = "xueqiu")
 public class CrawlerStat {
 
 	@DatabaseField(dataType = DataType.DATE, canBeNull = false, id = true)

@@ -7,6 +7,7 @@ import one.rewind.io.requester.account.Account;
 import one.rewind.io.requester.account.AccountImpl;
 import one.rewind.txt.DateFormatUtil;
 import org.tfelab.xq_data.Crawler;
+import org.tfelab.xq_data.model.ProxyImpl;
 import org.tfelab.xq_data.model.User;
 import org.tfelab.xq_data.proxy.ProxyManager;
 
@@ -144,7 +145,7 @@ public class UserExtractTask extends Task {
 				e.printStackTrace();
 			}
 
-			List<Task> tasks = new LinkedList<>();
+			/*List<Task> tasks = new LinkedList<>();
 
 			Task t = UserColumnExtractTask.generateTask(user.id, this.getAccount());
 			if(t != null) {
@@ -163,11 +164,16 @@ public class UserExtractTask extends Task {
 				tasks = ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccount()));
 			}
 
-			Crawler.getInstance().addTask(tasks);
+			Crawler.getInstance().addTask(tasks);*/
 		});
 	}
 
 	public static void main(String[] args) throws Exception {
+
+		ProxyImpl proxy = new ProxyImpl(
+				ProxyManager.aliyun_g, "10.0.0.51", 49999, "", "", "SG", 40);
+
+		proxy.insert();
 
 		Account accountWrapper = new AccountImpl(null, null, null)
 				.setProxyGroup(ProxyManager.aliyun_g);

@@ -34,7 +34,7 @@ public class Helper {
 
 
 	public static void main(String[] args) throws Exception {
-		//initDB();
-		Refacter.createTable(TaskTrace.class);
+		initDB();
+		//Refacter.createTable(TaskTrace.class);
 	}
 }

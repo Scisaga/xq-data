@@ -17,7 +17,7 @@ import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.List;
 
-@DBName(value = "crawler")
+@DBName(value = "xueqiu")
 @DatabaseTable(tableName = "proxies")
 public class ProxyImpl extends Proxy {
 

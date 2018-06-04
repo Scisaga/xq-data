@@ -14,7 +14,7 @@ import one.rewind.json.JSONable;
 import java.util.Date;
 
 @DatabaseTable(tableName = "task_traces")
-@DBName(value = "xq_data")
+@DBName(value = "xueqiu")
 public class TaskTrace implements JSONable {
 
 	private static final Logger logger = LogManager.getLogger(TaskTrace.class.getName());
