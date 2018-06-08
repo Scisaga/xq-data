@@ -1,6 +1,7 @@
 package org.tfelab.xq_data.task;
 
 import com.google.common.collect.ImmutableList;
+import one.rewind.io.requester.BasicRequester;
 import org.redisson.misc.Hash;
 import one.rewind.io.requester.Task;
 import one.rewind.io.requester.account.Account;
@@ -83,8 +84,11 @@ public class UserExtractTask extends Task {
 
 			String src = getResponse().getText();
 
+			String user_id = this.getParamString("id");
+
 			try {
-				if(User.getUserById(this.getParamString("id")) != null) {
+				if(User.getUserById(user_id) != null) {
+					Crawler.logger.info("User {} exists.", user_id);
 					return;
 				}
 			} catch (Exception e) {
@@ -101,7 +105,7 @@ public class UserExtractTask extends Task {
 			patterns.put("follow_count", "<strong>(?<T>\\d+?)</strong> 关注");
 			patterns.put("fans_count","<strong>(?<T>\\d+?)</strong> 粉丝");
 			patterns.put("shiming", "(?<T>实名认证)");
-			patterns.put("location", "<li> <i class=\"iconfont\">&#xe63f;</i>(?<T>.+?)</li>");
+			patterns.put("location", "(?s)&#xe63f;</i>(?<T>.+?)</li>");
 			patterns.put("post_count", "帖子<span>(?<T>\\d+?)</span>");
 			patterns.put("stock_count", "股票<span>(?<T>\\d+?)</span>");
 
@@ -145,7 +149,8 @@ public class UserExtractTask extends Task {
 				e.printStackTrace();
 			}
 
-			/*List<Task> tasks = new LinkedList<>();
+
+			List<Task> tasks = new LinkedList<>();
 
 			Task t = UserColumnExtractTask.generateTask(user.id, this.getAccount());
 			if(t != null) {
@@ -164,16 +169,16 @@ public class UserExtractTask extends Task {
 				tasks = ImmutableList.of(UserFollowExtractTask.generateTask(user.id, 1, this.getAccount()));
 			}
 
-			Crawler.getInstance().addTask(tasks);*/
+			Crawler.getInstance().addTask(tasks);
 		});
 	}
 
 	public static void main(String[] args) throws Exception {
 
-		ProxyImpl proxy = new ProxyImpl(
+		/*ProxyImpl proxy = new ProxyImpl(
 				ProxyManager.aliyun_g, "10.0.0.51", 49999, "", "", "SG", 40);
 
-		proxy.insert();
+		proxy.insert();*/
 
 		Account accountWrapper = new AccountImpl(null, null, null)
 				.setProxyGroup(ProxyManager.aliyun_g);
@@ -181,6 +186,10 @@ public class UserExtractTask extends Task {
 		Crawler crawler = Crawler.getInstance();
 
 		Task t = generateTask("7500022239", 1, accountWrapper);
+		//t.setProxy(ProxyManager.getInstance().getProxyByGroup(ProxyManager.aliyun_g));
+
+		//BasicRequester.getInstance().submit(t);
+
 		crawler.addTask(t);
 	}
 }

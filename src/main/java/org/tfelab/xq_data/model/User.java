@@ -19,6 +19,9 @@ public class User implements JSONable {
 	@DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false, id = true)
 	public String id;
 
+	@DatabaseField(dataType = DataType.STRING, width = 1024)
+	public String url;
+
 	@DatabaseField(dataType = DataType.STRING, width = 128, canBeNull = false)
 	public String name;
 

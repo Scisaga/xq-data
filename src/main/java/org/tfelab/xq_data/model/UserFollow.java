@@ -60,7 +60,7 @@ public class UserFollow implements JSONable {
 	 */
 	public static void insertBatch(List<org.tfelab.xq_data.model.UserFollow> items) throws Exception {
 
-		Connection conn = PooledDataSource.getDataSource("xq_data").getConnection();
+		Connection conn = PooledDataSource.getDataSource("xueqiu").getConnection();
 
 		String sql = "INSERT IGNORE INTO user_follows (`user_id`, `follow_id`, `insert_time`) values ";
 

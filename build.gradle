@@ -44,7 +44,7 @@ uploadArchives {
 }
 
 dependencies {
-	compile 'one.rewind:common:1.0.62-SNAPSHOT'
+	compile 'one.rewind:common:1.0.75-SNAPSHOT'
 }
 
 task copyFiles(group: 'tetra') << {

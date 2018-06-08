@@ -1,32 +1,24 @@
 package org.tfelab.xq_data;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import jdk.internal.cmm.SystemResourcePressureImpl;
+import one.rewind.io.requester.BasicRequester;
+import one.rewind.io.requester.Task;
+import one.rewind.io.requester.chrome.ChromeDriverRequester;
+import one.rewind.io.requester.proxy.IpDetector;
+import one.rewind.io.requester.proxy.Proxy;
+import one.rewind.util.Configs;
+import one.rewind.util.NetworkUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.redisson.api.RBlockingQueue;
-import org.redisson.client.RedisTimeoutException;
-import one.rewind.util.Configs;
-import one.rewind.db.RedissonAdapter;
-import one.rewind.json.JSON;
-import one.rewind.io.requester.BasicRequester;
-import one.rewind.io.requester.chrome.ChromeDriverRequester;
-import one.rewind.io.requester.Task;
-import one.rewind.io.requester.proxy.Proxy;
-import org.tfelab.xq_data.model.ProxyImpl;
-import one.rewind.io.requester.proxy.IpDetector;
 import org.tfelab.xq_data.proxy.ProxyManager;
-import one.rewind.txt.DateFormatUtil;
-import one.rewind.util.NetworkUtil;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.Date;
+import java.util.concurrent.*;
 
-public class Crawler {
+public class Crawler<T extends Task> {
 
 	public static final Logger logger = LogManager.getLogger(Crawler.class.getName());
 	public static String LOCAL_IP = IpDetector.getIp() + " :: " + NetworkUtil.getLocalIp();
@@ -63,16 +55,16 @@ public class Crawler {
 		}
 	}
 
-	private Map<Class<? extends Task>, Distributor<? extends Task>> distributors = new HashMap<>();
+	private Map<String, Distributor> distributors = new HashMap<>();
 
 	private Crawler() {
 
 	}
 
-	public boolean tasksDone(Class<? extends Task> clazz) throws InterruptedException {
+	public boolean tasksDone(String className) throws InterruptedException {
 
 		int count = 0;
-		Distributor d = distributors.get(clazz);
+		Distributor d = distributors.get(className);
 		if(d == null) return true;
 
 		for(int i=0; i<3; i++) {
@@ -88,35 +80,37 @@ public class Crawler {
 
 	/**
 	 *
-	 * @param clazz
+	 * @param className
 	 */
-	void createDistributor(Class<? extends Task> clazz) {
-		Distributor d = new Distributor(clazz.getSimpleName() + "-queue", clazz);
+	void createDistributor(String className) {
+		Distributor d = new Distributor(className);
 		d.setPriority(7);
 		d.start();
-		distributors.put(clazz, d);
+		distributors.put(className, d);
 	}
 
 	/**
 	 *
 	 * @param t
 	 */
-	public void addTask(Task t) {
+	public void addTask(T t) {
 
 		if(t == null) return;
+		String className = t.getClass().getSimpleName();
 
-		if (distributors.get(t.getClass()) == null) {
-			createDistributor(t.getClass());
+		if (distributors.get(className) == null) {
+			createDistributor(className);
 		}
 
 		if(t.getPriority().equals(Task.Priority.HIGH)) {
 			try {
-				distributors.get(t.getClass()).distribute(t.toJSON());
+				distributors.get(className).distribute(t);
 			} catch (Exception e) {
 				logger.error("Error add prior task. ", e);
 			}
 		} else {
-			distributors.get(t.getClass()).taskQueue.offer(t.toJSON());
+
+			distributors.get(className).taskQueue.add(t);
 		}
 
 	}
@@ -125,11 +119,11 @@ public class Crawler {
 	 *
 	 * @param ts
 	 */
-	public void addTask(List<Task> ts) {
+	public void addTask(List<T> ts) {
 
 		if(ts == null) return;
 
-		for(Task t : ts) {
+		for(T t : ts) {
 			addTask(t);
 		}
 	}
@@ -137,9 +131,9 @@ public class Crawler {
 	/**
 	 * 任务指派类
 	 */
-	class Distributor<T extends Task> extends Thread {
+	class Distributor extends Thread {
 
-		RBlockingQueue<String> taskQueue;
+		BlockingQueue<T> taskQueue;
 
 		private volatile boolean done = false;
 
@@ -149,22 +143,16 @@ public class Crawler {
 				0, TimeUnit.MICROSECONDS,
 				new ArrayBlockingQueue<Runnable>(1000000));
 
-		Class<T> clazz;
-
 		/**
 		 *
 		 * @param taskQueueName
-		 * @param clazz
 		 */
-		public Distributor (String taskQueueName, Class<T> clazz) {
+		public Distributor (String taskQueueName) {
 
-			taskQueue = RedissonAdapter.redisson.getBlockingQueue(taskQueueName);
-			taskQueue.clear();
+			taskQueue = new LinkedBlockingQueue();
 
 			executor.setThreadFactory(new ThreadFactoryBuilder()
 					.setNameFormat(taskQueueName + "Operator-Worker-%d").build());
-
-			this.clazz = clazz;
 
 			this.setName(this.getClass().getSimpleName() + "-" + taskQueueName);
 		}
@@ -174,7 +162,7 @@ public class Crawler {
 		 */
 		public void run() {
 
-			logger.info("Distributor {} started.", this.getName());
+			logger.info("{} started.", this.getName());
 
 			try {
 				Thread.sleep(1000);
@@ -185,26 +173,23 @@ public class Crawler {
 			while(!done) {
 
 				T t = null;
-				String json = null;
+
 				try {
 
-					json = taskQueue.take();
-					distribute(json);
+					t = taskQueue.take();
+					distribute(t);
 
 				} catch (InterruptedException e) {
 					logger.error(e);
-				} catch (RedisTimeoutException e) {
-					logger.error(e);
 				} catch (Exception e) {
-					logger.error("{}", json, e);
+					logger.error("{}", t.toJSON(), e);
 					System.exit(0);
 				}
 			}
 		}
 
-		public void distribute(String json) throws Exception {
+		public void distribute(T t) throws Exception {
 
-			T t = JSON.fromJson(json, clazz);
 			Proxy proxy = null;
 
 			/**
@@ -283,48 +268,50 @@ public class Crawler {
 
 			public void run() {
 
-				t.setResponse();
+				try {
 
-				if(t.getRequester_class() != null
-						&& t.getRequester_class().equals(ChromeDriverRequester.class.getSimpleName()))
-				{
-					ChromeDriverRequester.getInstance().submit(t);
-				} else {
-					BasicRequester.getInstance().submit(t, CONNECT_TIMEOUT);
-				}
+					t.setResponse();
 
-				for(Runnable runnable : t.doneCallBacks) {
-					System.err.println("AAA");
-					runnable.run();
-				}
-
-				StatManager.getInstance().count();
-
-				/**
-				 * 重试逻辑
-				 */
-				if (t.getExceptions().size() > 0) {
-
-					for(Throwable e : t.getExceptions()) {
-						logger.error("Fetch Error: {}.", t.getUrl(), e);
-					}
-
-					if(t.getRetryCount() < RETRY_LIMIT) {
-						t.addRetryCount();
-						addTask(t);
+					if(t.getRequester_class() != null
+							&& t.getRequester_class().equals(ChromeDriverRequester.class.getSimpleName()))
+					{
+						ChromeDriverRequester.getInstance().submit(t);
 					} else {
-						try {
-							t.insert();
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
+						BasicRequester.getInstance().submit(t, CONNECT_TIMEOUT);
 					}
 
-					return;
+					for (Runnable runnable : t.doneCallBacks) {
+						runnable.run();
+					}
+
+					StatManager.getInstance().count();
+
+					/**
+					 * 重试逻辑
+					 */
+					if (t.getExceptions().size() > 0) {
+
+						for(Throwable e : t.getExceptions()) {
+							logger.error("Fetch Error: {}.", t.getUrl(), e);
+						}
+
+						if(t.getRetryCount() < RETRY_LIMIT) {
+							t.addRetryCount();
+							addTask(t);
+						} else {
+							t.insert();
+						}
+
+						return;
+					}
+
+					logger.info("{} duration: {}", t.getUrl(), t.getDuration());
+
+				} catch (Exception e) {
+
+					logger.error(e);
+
 				}
-
-				logger.info("{} duration: {}", t.getUrl(), t.getDuration());
-
 			}
 		}
 	}

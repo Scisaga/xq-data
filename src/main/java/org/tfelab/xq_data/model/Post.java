@@ -27,6 +27,9 @@ public class Post implements JSONable {
 	@DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false, id = true)
 	public String id;
 
+	@DatabaseField(dataType = DataType.STRING, width = 1024)
+	public String url;
+
 	@DatabaseField(dataType = DataType.STRING, width = 32, canBeNull = false)
 	public String user_id;
 
@@ -87,7 +90,7 @@ public class Post implements JSONable {
 	 */
 	public static void insertBatch(List<Post> items) throws Exception {
 
-		Connection conn = PooledDataSource.getDataSource("xq_data").getConnection();
+		Connection conn = PooledDataSource.getDataSource("xueqiu").getConnection();
 
 		String sql = "INSERT IGNORE INTO posts (`id`, `user_id`, `title`, `retweeted_id`, `create_time`, `retweet_count`, `reply_count`, `fav_count`, `like_count`, `reward_count`, `reward_amount`, `description`, `insert_time`) values ";
 
@@ -112,7 +115,7 @@ public class Post implements JSONable {
 
 		sql = sql.substring(0, sql.length() - 2);
 
-//		System.err.println(sql);
+		// System.err.println(sql);
 		if(count > 0) {
 			Statement stmt = conn.createStatement();
 
